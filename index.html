@@ -580,11 +580,8 @@
                     <label>Select Month</label>
                     <select id="monthSelect" class="select-input">
                         <option value="" disabled selected>Choose billing month</option>
-
-                            <option value="NEW_FEB_S">February- 2026 CY - 08  (FEB)</option>
-                        
+                        <option value="NEW_FEB_S">February- 2026 CY - 08  (FEB)</option>
                         <option value="FEB">February -2026(FEB)</option>
-                        
                     </select>
                 </div>
 
@@ -615,7 +612,7 @@
                         <li>Download or print extracted PDF</li>
                     </ol>
                     <div class="note">
-                        <strong>⚡ Pro Tip:</strong> Server-side search delivers instant results - no waiting for PDF scanning
+                        <strong>⚡ Pro Tip:</strong> PDF is cached after first load — same month searches are instant!
                     </div>
                 </div>
             </div>
@@ -670,9 +667,15 @@
     </div>
 
     <script>
-        // Set PDF.js worker source
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        // ─── PDF.js worker ───────────────────────────────────────────────────────
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+        // ─── PDF Cache: stores downloaded PDFs by month key ──────────────────────
+        // After first download, same month is INSTANT — no re-download needed
+        const pdfCache = {};
+
+        // ─── App State ───────────────────────────────────────────────────────────
         const state = {
             pdfFile: null,
             pdfDoc: null,
@@ -687,25 +690,26 @@
             matchedPage: null
         };
 
-        const monthSelect = document.getElementById('monthSelect');
+        // ─── DOM References ──────────────────────────────────────────────────────
+        const monthSelect         = document.getElementById('monthSelect');
         const consumerNumberInput = document.getElementById('consumerNumber');
-        const searchButton = document.getElementById('searchButton');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressText = document.getElementById('progressText');
-        const progressFill = document.getElementById('progressFill');
-        const pageCounter = document.getElementById('pageCounter');
-        const resultPlaceholder = document.getElementById('resultPlaceholder');
-        const resultViewer = document.getElementById('resultViewer');
-        const pdfViewer = document.getElementById('pdfViewer');
-        const downloadButton = document.getElementById('downloadButton');
-        const printButton = document.getElementById('printButton');
-        const messageArea = document.getElementById('messageArea');
-        const statusIndicator = document.getElementById('statusIndicator');
-        const resultContainer = document.getElementById('resultContainer');
+        const searchButton        = document.getElementById('searchButton');
+        const progressContainer   = document.getElementById('progressContainer');
+        const progressText        = document.getElementById('progressText');
+        const progressFill        = document.getElementById('progressFill');
+        const pageCounter         = document.getElementById('pageCounter');
+        const resultPlaceholder   = document.getElementById('resultPlaceholder');
+        const resultViewer        = document.getElementById('resultViewer');
+        const pdfViewer           = document.getElementById('pdfViewer');
+        const downloadButton      = document.getElementById('downloadButton');
+        const printButton         = document.getElementById('printButton');
+        const messageArea         = document.getElementById('messageArea');
+        const statusIndicator     = document.getElementById('statusIndicator');
 
-        // Backend API URL
+        // ─── Backend API ─────────────────────────────────────────────────────────
         const BACKEND_API_URL = 'https://pgvcl-bill-backend-shapar.jadejas-k7777.workers.dev/find';
 
+        // ─── Init ────────────────────────────────────────────────────────────────
         function init() {
             setupEventListeners();
             updateUI();
@@ -734,43 +738,42 @@
         }
 
         function validateForm() {
-            const hasMonth = !!state.selectedMonth;
-            const hasConsumerNumber = state.consumerNumber.length == 11;
-            searchButton.disabled = !(hasMonth && hasConsumerNumber) || state.isProcessing;
+            const hasMonth          = !!state.selectedMonth;
+            const hasConsumerNumber = state.consumerNumber.length === 11;
+            searchButton.disabled   = !(hasMonth && hasConsumerNumber) || state.isProcessing;
         }
 
+        // ─── Main Search Flow ────────────────────────────────────────────────────
         async function handleSearch() {
             if (!state.selectedMonth || !state.consumerNumber || state.isProcessing) return;
-            
+
             resetResults();
             state.isProcessing = true;
-            state.matchedPage = null;
+            state.matchedPage  = null;
             updateUI();
-            
+
             try {
                 showMessage('info', `Searching for consumer ${state.consumerNumber}...`);
-                
-                // Step 1: Call backend API to get page number
+
+                // Step 1: Ask Cloudflare Worker which page this consumer is on
                 const backendResult = await fetchPageNumberFromBackend();
-                
-                // If backend returned an error, stop processing
+
                 if (backendResult && backendResult.error) {
                     showMessage('error', backendResult.error);
                     return;
                 }
-                
-                // If no page found, stop processing
+
                 if (state.matchedPage === null) {
-                    showMessage('error', `Consumer number ${state.consumerNumber} not found in ${state.selectedMonth} billing data`);
+                    showMessage('error', `Consumer ${state.consumerNumber} not found in ${state.selectedMonth} billing data`);
                     return;
                 }
-                
-                // Step 2: If page found, fetch and extract the PDF
+
+                // Step 2: Download PDF (uses cache if already downloaded this session)
                 await fetchPdfFromServer();
                 await loadPdfDocument();
                 await extractPdfPage();
-                showMessage('success', `Bill found on page ${state.matchedPage + 1}`);
-                
+                showMessage('success', `✓ Bill found on page ${state.matchedPage + 1}`);
+
             } catch (error) {
                 console.error('Error during bill search:', error);
                 showMessage('error', `Error: ${error.message}`);
@@ -785,97 +788,122 @@
             }
         }
 
+        // ─── Step 1: Get page number from Cloudflare Worker ──────────────────────
         async function fetchPageNumberFromBackend() {
             showProgress('Contacting server...', 20);
-            
+
             try {
                 const url = `${BACKEND_API_URL}?month=${encodeURIComponent(state.selectedMonth)}&consumer=${encodeURIComponent(state.consumerNumber)}`;
-                
+
                 const response = await fetch(url, {
                     method: 'GET',
                     mode: 'cors',
                     cache: 'no-cache',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'Accept': 'application/json' }
                 });
-                
-                // ✅ REPLACE WITH THIS
-const result = await response.json();
 
-if (!response.ok) {
-    // Show the actual error from Worker, not a fake connection error
-    return { error: result.error || `Server error: ${response.status}` };
-}
-                
-                if (result && result.error) {
-                    showProgress('✗ ' + result.error, 40);
-                    pageCounter.textContent = result.error;
-                    return { error: result.error };
+                // ✅ Always parse JSON first — worker always sends a JSON body
+                const result = await response.json();
+
+                // ✅ If not OK (404, 400, etc.) return the actual error from Worker
+                //    This prevents the misleading "Failed to connect to server" message
+                if (!response.ok) {
+                    const errMsg = result.error || `Server error: ${response.status}`;
+                    showProgress('✗ ' + errMsg, 40);
+                    pageCounter.textContent = errMsg;
+                    return { error: errMsg };
                 }
-                
+
                 if (result && typeof result.page === 'number') {
                     state.matchedPage = result.page - 1;
                     showProgress(`✓ Found on page ${result.page}`, 40);
                     pageCounter.textContent = `Page ${result.page}`;
                     return result;
-                } else {
-                    state.matchedPage = null;
-                    showProgress('✗ Consumer not found', 40);
-                    pageCounter.textContent = 'Not found';
-                    return null;
                 }
-                
+
+                // Unexpected response shape
+                state.matchedPage = null;
+                showProgress('✗ Consumer not found', 40);
+                pageCounter.textContent = 'Not found';
+                return null;
+
             } catch (error) {
-                console.error('Error fetching from backend:', error);
-                showProgress('✗ Connection failed', 40);
-                throw new Error(`Failed to connect to server`);
+                // Only reaches here on network failure (no internet, DNS error, etc.)
+                console.error('Network error contacting backend:', error);
+                showProgress('✗ Cannot reach server', 40);
+                throw new Error('Cannot reach server. Please check your internet connection.');
             }
         }
 
+        // ─── Step 2: Download PDF (with cache + CDN fallback) ────────────────────
         async function fetchPdfFromServer() {
-            showProgress(`Loading ${state.selectedMonth} data...`, 50);
-            
-            try {
-                const timestamp = Date.now();
-const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf?t=${timestamp}`;
 
-                
-                showProgress(`Downloading PDF...`, 60);
-                
-                const response = await fetch(pdfUrl, {
+            // ✅ Already downloaded this session? Use memory cache — INSTANT!
+            if (pdfCache[state.selectedMonth]) {
+                showProgress(`✓ Using cached ${state.selectedMonth} data`, 70);
+                state.pdfFile = pdfCache[state.selectedMonth];
+                return;
+            }
+
+            showProgress(`Loading ${state.selectedMonth} data...`, 50);
+
+            // Primary URL: jsDelivr CDN — faster globally, has India servers
+            const cdnUrl      = `https://cdn.jsdelivr.net/gh/Shiv0087/bill-extractor-Shapar@main/pdfs/${state.selectedMonth}.pdf`;
+            // Fallback URL: GitHub Pages — original, always works if CDN fails
+            const fallbackUrl = `https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf`;
+
+            let arrayBuffer = null;
+
+            // Try CDN first
+            try {
+                showProgress(`Downloading via fast server...`, 55);
+                const response = await fetch(cdnUrl, {
                     method: 'GET',
                     mode: 'cors',
-                    cache: 'no-cache'
+                    cache: 'force-cache'   // use browser cache if available
                 });
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch PDF`);
+                if (!response.ok) throw new Error('CDN returned ' + response.status);
+                arrayBuffer = await response.arrayBuffer();
+                showProgress(`✓ PDF loaded via CDN (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
+
+            } catch (cdnError) {
+                // CDN failed → silently try GitHub Pages backup
+                console.warn('CDN failed, trying backup:', cdnError.message);
+                showProgress(`Trying backup server...`, 60);
+                try {
+                    const response = await fetch(fallbackUrl, {
+                        method: 'GET',
+                        mode: 'cors',
+                        cache: 'force-cache'
+                    });
+                    if (!response.ok) throw new Error('Backup also failed: ' + response.status);
+                    arrayBuffer = await response.arrayBuffer();
+                    showProgress(`✓ PDF loaded via backup (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
+
+                } catch (fallbackError) {
+                    console.error('Both CDN and backup failed:', fallbackError);
+                    throw new Error(`Could not load ${state.selectedMonth} PDF from any source`);
                 }
-                
-                const arrayBuffer = await response.arrayBuffer();
-                
-                if (arrayBuffer.byteLength === 0) {
-                    throw new Error('PDF file is empty');
-                }
-                
-                state.pdfFile = new Uint8Array(arrayBuffer);
-                
-                showProgress(`PDF loaded (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
-                
-            } catch (error) {
-                console.error('Error fetching PDF:', error);
-                throw new Error(`Could not load ${state.selectedMonth} data`);
             }
+
+            if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+                throw new Error('Downloaded PDF file is empty');
+            }
+
+            state.pdfFile = new Uint8Array(arrayBuffer);
+
+            // ✅ Save in memory — next search for same month will be instant
+            pdfCache[state.selectedMonth] = state.pdfFile;
         }
 
+        // ─── Step 3: Parse PDF with PDF.js ───────────────────────────────────────
         async function loadPdfDocument() {
             showProgress('Processing PDF...', 75);
-            
+
             if (!state.pdfFile || state.pdfFile.length === 0) {
                 throw new Error('No PDF data loaded');
             }
-            
+
             try {
                 const loadingTask = pdfjsLib.getDocument({
                     data: state.pdfFile,
@@ -883,103 +911,100 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
                     disableRange: false,
                     verbosity: 0
                 });
-                
-                state.pdfDoc = await loadingTask.promise;
+
+                state.pdfDoc    = await loadingTask.promise;
                 state.totalPages = state.pdfDoc.numPages;
-                
+
                 showProgress(`Ready. Total pages: ${state.totalPages}`, 80);
-                
+
             } catch (error) {
                 console.error('Error loading PDF:', error);
-                throw new Error('Failed to parse PDF');
+                throw new Error('Failed to parse PDF document');
             }
         }
 
+        // ─── Step 4: Extract the matched page ────────────────────────────────────
         async function extractPdfPage() {
             if (state.matchedPage === null || !state.pdfDoc) return;
-            
+
             showProgress('Extracting bill page...', 85);
-            
+
             try {
                 if (state.extractedPdfUrl) {
                     URL.revokeObjectURL(state.extractedPdfUrl);
                 }
-                
+
                 state.extractedFileName = `${state.consumerNumber}.pdf`;
-                
+
                 try {
+                    // Primary method: pdf-lib (preserves original PDF quality)
                     const { PDFDocument } = PDFLib;
-                    
+
                     const originalPdf = await PDFDocument.load(state.pdfFile, {
                         ignoreEncryption: true,
                         updateMetadata: false
                     });
-                    
+
                     const newPdf = await PDFDocument.create();
-                    
                     const [copiedPage] = await newPdf.copyPages(originalPdf, [state.matchedPage]);
                     newPdf.addPage(copiedPage);
-                    
+
                     newPdf.setTitle(`Bill - Consumer ${state.consumerNumber} - ${state.selectedMonth}`);
                     newPdf.setAuthor('Bill Extractor Pro');
                     newPdf.setSubject(`Extracted bill for consumer ${state.consumerNumber}`);
                     newPdf.setKeywords([state.consumerNumber, state.selectedMonth, 'electricity bill']);
                     newPdf.setCreationDate(new Date());
                     newPdf.setModificationDate(new Date());
-                    
+
                     const pdfBytes = await newPdf.save();
-                    state.extractedPdf = new Blob([pdfBytes], { type: 'application/pdf' });
+                    state.extractedPdf    = new Blob([pdfBytes], { type: 'application/pdf' });
                     state.extractedPdfUrl = URL.createObjectURL(state.extractedPdf);
-                    
+
                 } catch (pdfLibError) {
-                    console.log('Using fallback extraction method...', pdfLibError);
-                    
-                    const page = await state.pdfDoc.getPage(state.matchedPage + 1);
+                    // Fallback method: render to canvas → jsPDF image
+                    console.log('Using canvas fallback extraction...', pdfLibError);
+
+                    const page     = await state.pdfDoc.getPage(state.matchedPage + 1);
                     const viewport = page.getViewport({ scale: 2.0 });
-                    
-                    const canvas = document.createElement('canvas');
+
+                    const canvas  = document.createElement('canvas');
                     const context = canvas.getContext('2d');
-                    canvas.width = viewport.width;
+                    canvas.width  = viewport.width;
                     canvas.height = viewport.height;
-                    
-                    await page.render({
-                        canvasContext: context,
-                        viewport: viewport
-                    }).promise;
-                    
+
+                    await page.render({ canvasContext: context, viewport }).promise;
+
                     const imgData = canvas.toDataURL('image/png', 1.0);
-                    
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF({
                         orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
                         unit: 'px',
                         format: [canvas.width, canvas.height]
                     });
-                    
+
                     pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-                    
                     pdf.setProperties({
-                        title: `Bill - Consumer ${state.consumerNumber}`,
-                        subject: `Extracted electricity bill`,
-                        author: 'Bill Extractor Pro',
+                        title:    `Bill - Consumer ${state.consumerNumber}`,
+                        subject:  'Extracted electricity bill',
+                        author:   'Bill Extractor Pro',
                         keywords: `bill, ${state.consumerNumber}, ${state.selectedMonth}`,
-                        creator: 'Bill Extractor'
+                        creator:  'Bill Extractor'
                     });
-                    
-                    const pdfBytes = pdf.output('arraybuffer');
-                    state.extractedPdf = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                    const pdfBytes        = pdf.output('arraybuffer');
+                    state.extractedPdf    = new Blob([pdfBytes], { type: 'application/pdf' });
                     state.extractedPdfUrl = URL.createObjectURL(state.extractedPdf);
-                    
+
                     page.cleanup();
                     canvas.remove();
                 }
-                
+
                 displayExtractedPdf();
                 showProgress('✓ Extraction complete', 100);
-                
+
             } catch (error) {
                 console.error('Extraction failed:', error);
-                showMessage('error', 'Could not extract PDF. Creating location guide.');
+                showMessage('error', 'Could not extract PDF page. Creating location guide instead.');
                 await createLocationGuide();
             } finally {
                 if (state.pdfDoc) {
@@ -989,76 +1014,60 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
             }
         }
 
+        // ─── Fallback: Location Guide PDF ────────────────────────────────────────
         async function createLocationGuide() {
             const { PDFDocument, StandardFonts, rgb } = PDFLib;
             const newPdf = await PDFDocument.create();
-            const page = newPdf.addPage([595, 842]);
-            
+            const page   = newPdf.addPage([595, 842]);
+
             const helveticaFont = await newPdf.embedFont(StandardFonts.Helvetica);
             const helveticaBold = await newPdf.embedFont(StandardFonts.HelveticaBold);
-            
-            page.drawText(`BILL LOCATION GUIDE`, {
-                x: 50, y: 750, size: 24, font: helveticaBold, color: rgb(0.23, 0.5, 0.96)
-            });
-            
-            page.drawText(`Consumer Number:`, { x: 50, y: 700, size: 14, font: helveticaBold });
+
+            page.drawText('BILL LOCATION GUIDE', { x: 50, y: 750, size: 24, font: helveticaBold, color: rgb(0.23, 0.5, 0.96) });
+            page.drawText('Consumer Number:', { x: 50, y: 700, size: 14, font: helveticaBold });
             page.drawText(`${state.consumerNumber}`, { x: 200, y: 700, size: 16, font: helveticaBold, color: rgb(0.94, 0.27, 0.27) });
-            
-            page.drawText(`Month:`, { x: 50, y: 670, size: 14, font: helveticaBold });
+            page.drawText('Month:', { x: 50, y: 670, size: 14, font: helveticaBold });
             page.drawText(`${state.selectedMonth}`, { x: 200, y: 670, size: 16, font: helveticaBold });
-            
-            page.drawRectangle({
-                x: 50, y: 600, width: 500, height: 100,
-                borderWidth: 2,
-                borderColor: rgb(0.23, 0.5, 0.96),
-                color: rgb(0.95, 0.97, 1)
-            });
-            
-            page.drawText(`📍 BILL LOCATION`, { x: 70, y: 675, size: 18, font: helveticaBold });
-            page.drawText(`Page Number:`, { x: 70, y: 640, size: 16, font: helveticaBold });
-            
+
+            page.drawRectangle({ x: 50, y: 600, width: 500, height: 100, borderWidth: 2, borderColor: rgb(0.23, 0.5, 0.96), color: rgb(0.95, 0.97, 1) });
+            page.drawText('BILL LOCATION', { x: 70, y: 675, size: 18, font: helveticaBold });
+            page.drawText('Page Number:', { x: 70, y: 640, size: 16, font: helveticaBold });
+
             const displayTotalPages = state.totalPages || 'Unknown';
-            page.drawText(`${state.matchedPage + 1} of ${displayTotalPages}`, { 
-                x: 200, y: 640, size: 24, font: helveticaBold, color: rgb(0.23, 0.5, 0.96) 
-            });
-            
-            page.drawText(`Instructions:`, { x: 50, y: 550, size: 16, font: helveticaBold });
-            
+            page.drawText(`${state.matchedPage + 1} of ${displayTotalPages}`, { x: 200, y: 640, size: 24, font: helveticaBold, color: rgb(0.23, 0.5, 0.96) });
+
+            page.drawText('Instructions:', { x: 50, y: 550, size: 16, font: helveticaBold });
             const instructions = [
                 `1. Open ${state.selectedMonth}.pdf file`,
                 `2. Navigate to page ${state.matchedPage + 1}`,
                 `3. Print or save that specific page`,
                 `4. Bill is now extracted for consumer ${state.consumerNumber}`
             ];
-            
             instructions.forEach((instruction, index) => {
                 page.drawText(instruction, { x: 70, y: 520 - (index * 25), size: 12, font: helveticaFont });
             });
-            
-            page.drawText(`Original PDF:`, { x: 50, y: 400, size: 12, font: helveticaBold });
-           page.drawText(`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf`,
 
+            page.drawText('Original PDF:', { x: 50, y: 400, size: 12, font: helveticaBold });
+            page.drawText(`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf`,
                 { x: 50, y: 380, size: 10, font: helveticaFont, color: rgb(0, 0, 0.8) });
-            
-            page.drawText(`Generated by Bill Extractor Pro • ${new Date().toLocaleDateString()}`, 
+            page.drawText(`Generated by Bill Extractor Pro • ${new Date().toLocaleDateString()}`,
                 { x: 50, y: 50, size: 10, font: helveticaFont, color: rgb(0.5, 0.5, 0.5) });
-            
-            const pdfBytes = await newPdf.save();
-            state.extractedPdf = new Blob([pdfBytes], { type: 'application/pdf' });
+
+            const pdfBytes        = await newPdf.save();
+            state.extractedPdf    = new Blob([pdfBytes], { type: 'application/pdf' });
             state.extractedPdfUrl = URL.createObjectURL(state.extractedPdf);
             state.extractedFileName = `${state.consumerNumber}_GUIDE.pdf`;
         }
 
+        // ─── Display ──────────────────────────────────────────────────────────────
         function displayExtractedPdf() {
             if (!state.extractedPdfUrl) return;
-            
+
             pdfViewer.src = state.extractedPdfUrl + '#toolbar=1&navpanes=0&scrollbar=1';
-            
             resultPlaceholder.style.display = 'none';
             resultViewer.classList.add('active');
-            
             downloadButton.disabled = false;
-            printButton.disabled = false;
+            printButton.disabled    = false;
         }
 
         function handleDownload() {
@@ -1066,23 +1075,15 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
                 showMessage('error', 'No PDF available to download.');
                 return;
             }
-            
             try {
-                const fileName = state.extractedFileName;
-                
-                const a = document.createElement('a');
-                a.href = state.extractedPdfUrl;
-                a.download = fileName;
+                const a    = document.createElement('a');
+                a.href     = state.extractedPdfUrl;
+                a.download = state.extractedFileName;
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                }, 100);
-                
-                showMessage('success', `Downloading: ${fileName}`);
-                
+                setTimeout(() => document.body.removeChild(a), 100);
+                showMessage('success', `Downloading: ${state.extractedFileName}`);
             } catch (error) {
                 console.error('Download error:', error);
                 showMessage('error', 'Download failed.');
@@ -1094,15 +1095,10 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
                 showMessage('error', 'No PDF available to print.');
                 return;
             }
-            
             try {
                 const printWindow = window.open(state.extractedPdfUrl, '_blank');
                 if (printWindow) {
-                    printWindow.onload = function() {
-                        setTimeout(() => {
-                            printWindow.print();
-                        }, 500);
-                    };
+                    printWindow.onload = () => setTimeout(() => printWindow.print(), 500);
                 } else {
                     showMessage('error', 'Please allow pop-ups to print.');
                 }
@@ -1112,9 +1108,10 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
             }
         }
 
+        // ─── UI Helpers ───────────────────────────────────────────────────────────
         function showProgress(text, percent) {
-            progressText.textContent = text;
-            progressFill.style.width = `${percent}%`;
+            progressText.textContent    = text;
+            progressFill.style.width    = `${percent}%`;
             if (!progressContainer.classList.contains('active')) {
                 progressContainer.classList.add('active');
             }
@@ -1122,8 +1119,7 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
 
         function showMessage(type, text) {
             messageArea.textContent = text;
-            messageArea.className = `message ${type}`;
-            
+            messageArea.className   = `message ${type}`;
             if (type === 'success') {
                 setTimeout(() => {
                     if (messageArea.className.includes('success')) {
@@ -1134,37 +1130,33 @@ const pdfUrl =`https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.sel
         }
 
         function resetResults() {
-            if (state.extractedPdfUrl) {
-                URL.revokeObjectURL(state.extractedPdfUrl);
-            }
-            
+            if (state.extractedPdfUrl) URL.revokeObjectURL(state.extractedPdfUrl);
+
             pdfViewer.src = '';
             resultViewer.classList.remove('active');
             resultPlaceholder.style.display = 'flex';
-            
             downloadButton.disabled = true;
-            printButton.disabled = true;
-            
-            state.extractedPdf = null;
-            state.extractedPdfUrl = null;
+            printButton.disabled    = true;
+
+            state.extractedPdf      = null;
+            state.extractedPdfUrl   = null;
             state.extractedFileName = '';
-            state.matchedPage = null;
-            
+            state.matchedPage       = null;
+
             progressFill.style.width = '0%';
-            pageCounter.textContent = 'Page —';
+            pageCounter.textContent  = 'Page —';
         }
 
         function updateUI() {
             validateForm();
-            
             if (state.isProcessing) {
-                searchButton.innerHTML = '<span>⏳</span> Processing...';
-                searchButton.disabled = true;
+                searchButton.innerHTML    = '<span>⏳</span> Processing...';
+                searchButton.disabled     = true;
                 statusIndicator.className = 'status-indicator status-processing';
                 statusIndicator.innerHTML = 'Processing';
                 progressContainer.classList.add('active');
             } else {
-                searchButton.innerHTML = '<span>🔍</span> Search & Extract Bill';
+                searchButton.innerHTML    = '<span>🔍</span> Search & Extract Bill';
                 statusIndicator.className = 'status-indicator status-idle';
                 statusIndicator.innerHTML = 'Ready';
             }
