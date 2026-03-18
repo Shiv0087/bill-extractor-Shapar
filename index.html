@@ -153,9 +153,7 @@
             background: #283548;
         }
 
-        .text-input::placeholder {
-            color: #4b5a6e;
-        }
+        .text-input::placeholder { color: #4b5a6e; }
 
         .button {
             display: inline-flex;
@@ -232,7 +230,7 @@
 
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .progress-text {
@@ -256,7 +254,7 @@
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            50%       { opacity: 0.3; }
         }
 
         .progress-bar {
@@ -295,10 +293,7 @@
 
         .result-placeholder {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -335,9 +330,7 @@
             display: none;
         }
 
-        .result-viewer.active {
-            display: block;
-        }
+        .result-viewer.active { display: block; }
 
         .pdf-viewer {
             width: 100%;
@@ -404,15 +397,8 @@
             font-size: 13px;
         }
 
-        .footer-links {
-            display: flex;
-            gap: 24px;
-        }
-
-        .footer-links span {
-            color: #3b82f6;
-            font-weight: 500;
-        }
+        .footer-links { display: flex; gap: 24px; }
+        .footer-links span { color: #3b82f6; font-weight: 500; }
 
         .instructions {
             margin-top: 32px;
@@ -479,9 +465,7 @@
             border: 1px solid rgba(59, 130, 246, 0.2);
         }
 
-        .instructions .note strong {
-            color: #3b82f6;
-        }
+        .instructions .note strong { color: #3b82f6; }
 
         .status-indicator {
             display: inline-flex;
@@ -495,26 +479,18 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .status-idle {
-            color: #94a3b8;
-        }
-
+        .status-idle { color: #94a3b8; }
         .status-idle::before {
             content: '';
-            width: 8px;
-            height: 8px;
+            width: 8px; height: 8px;
             background: #94a3b8;
             border-radius: 50%;
         }
 
-        .status-processing {
-            color: #3b82f6;
-        }
-
+        .status-processing { color: #3b82f6; }
         .status-processing::before {
             content: '';
-            width: 8px;
-            height: 8px;
+            width: 8px; height: 8px;
             background: #3b82f6;
             border-radius: 50%;
             animation: pulse 1.5s infinite;
@@ -531,29 +507,15 @@
         }
 
         @media (max-width: 1200px) {
-            .main-content {
-                flex-direction: column;
-            }
-            .input-panel, .result-panel {
-                min-width: 100%;
-            }
+            .main-content { flex-direction: column; }
+            .input-panel, .result-panel { min-width: 100%; }
         }
 
         @media (max-width: 640px) {
-            body {
-                padding: 12px;
-            }
-            header, .main-content, footer {
-                padding: 20px;
-            }
-            .button-group {
-                flex-direction: column;
-            }
-            .footer-content {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
+            body { padding: 12px; }
+            header, .main-content, footer { padding: 20px; }
+            .button-group { flex-direction: column; }
+            .footer-content { flex-direction: column; gap: 12px; text-align: center; }
         }
     </style>
 </head>
@@ -575,12 +537,12 @@
                     Bill Search
                     <span class="status-indicator status-idle" id="statusIndicator">Ready</span>
                 </div>
-                
+
                 <div class="form-group">
                     <label>Select Month</label>
                     <select id="monthSelect" class="select-input">
                         <option value="" disabled selected>Choose billing month</option>
-                        <option value="NEW_FEB_S">February- 2026 CY - 08  (FEB)</option>
+                        <option value="NEW_FEB_S">February- 2026 CY - 08 (FEB)</option>
                         <option value="FEB">February -2026(FEB)</option>
                     </select>
                 </div>
@@ -594,7 +556,7 @@
                     <span>🔍</span>
                     Search & Extract Bill
                 </button>
-                
+
                 <div class="progress-container" id="progressContainer">
                     <div class="progress-text" id="progressText">Initializing search...</div>
                     <div class="progress-bar">
@@ -622,7 +584,7 @@
                     Extracted Bill
                     <span class="badge">Original Quality</span>
                 </div>
-                
+
                 <div class="result-container" id="resultContainer">
                     <div id="resultPlaceholder" class="result-placeholder">
                         <div class="placeholder-icon">📄</div>
@@ -631,7 +593,6 @@
                             <p>Enter consumer number and click search to extract bill</p>
                         </div>
                     </div>
-                    
                     <div id="resultViewer" class="result-viewer">
                         <iframe id="pdfViewer" class="pdf-viewer" title="Extracted Bill"></iframe>
                     </div>
@@ -639,15 +600,13 @@
 
                 <div class="button-group">
                     <button id="downloadButton" class="button secondary" disabled>
-                        <span>📥</span>
-                        Download PDF
+                        <span>📥</span> Download PDF
                     </button>
                     <button id="printButton" class="button print" disabled>
-                        <span>🖨️</span>
-                        Print Bill
+                        <span>🖨️</span> Print Bill
                     </button>
                 </div>
-                
+
                 <div id="messageArea" class="message"></div>
             </div>
         </div>
@@ -667,15 +626,19 @@
     </div>
 
     <script>
-        // ─── PDF.js worker ───────────────────────────────────────────────────────
         pdfjsLib.GlobalWorkerOptions.workerSrc =
             'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // ─── PDF Cache: stores downloaded PDFs by month key ──────────────────────
-        // After first download, same month is INSTANT — no re-download needed
+        // ─────────────────────────────────────────────────────────────────────────
+        // PDF CACHE
+        // Stores one master Uint8Array per month key.
+        // Every search gets a brand-new copy: new Uint8Array(pdfCache[month])
+        // This means pdf-lib / PDF.js can detach / consume the working copy
+        // without ever corrupting the cached master — so the 2nd, 3rd, 4th ...
+        // search for the same month is always instant with no re-download.
+        // ─────────────────────────────────────────────────────────────────────────
         const pdfCache = {};
 
-        // ─── App State ───────────────────────────────────────────────────────────
         const state = {
             pdfFile: null,
             pdfDoc: null,
@@ -690,7 +653,6 @@
             matchedPage: null
         };
 
-        // ─── DOM References ──────────────────────────────────────────────────────
         const monthSelect         = document.getElementById('monthSelect');
         const consumerNumberInput = document.getElementById('consumerNumber');
         const searchButton        = document.getElementById('searchButton');
@@ -706,10 +668,9 @@
         const messageArea         = document.getElementById('messageArea');
         const statusIndicator     = document.getElementById('statusIndicator');
 
-        // ─── Backend API ─────────────────────────────────────────────────────────
         const BACKEND_API_URL = 'https://pgvcl-bill-backend-shapar.jadejas-k7777.workers.dev/find';
 
-        // ─── Init ────────────────────────────────────────────────────────────────
+        // ── Init ──────────────────────────────────────────────────────────────────
         function init() {
             setupEventListeners();
             updateUI();
@@ -724,15 +685,15 @@
             printButton.addEventListener('click', handlePrint);
         }
 
-        function handleMonthSelect(event) {
-            state.selectedMonth = event.target.value;
+        function handleMonthSelect(e) {
+            state.selectedMonth = e.target.value;
             validateForm();
             updateUI();
         }
 
-        function handleConsumerNumberInput(event) {
-            state.consumerNumber = event.target.value.replace(/\D/g, '');
-            event.target.value = state.consumerNumber;
+        function handleConsumerNumberInput(e) {
+            state.consumerNumber = e.target.value.replace(/\D/g, '');
+            e.target.value = state.consumerNumber;
             validateForm();
             updateUI();
         }
@@ -743,7 +704,7 @@
             searchButton.disabled   = !(hasMonth && hasConsumerNumber) || state.isProcessing;
         }
 
-        // ─── Main Search Flow ────────────────────────────────────────────────────
+        // ── Main Search ───────────────────────────────────────────────────────────
         async function handleSearch() {
             if (!state.selectedMonth || !state.consumerNumber || state.isProcessing) return;
 
@@ -755,7 +716,6 @@
             try {
                 showMessage('info', `Searching for consumer ${state.consumerNumber}...`);
 
-                // Step 1: Ask Cloudflare Worker which page this consumer is on
                 const backendResult = await fetchPageNumberFromBackend();
 
                 if (backendResult && backendResult.error) {
@@ -768,7 +728,6 @@
                     return;
                 }
 
-                // Step 2: Download PDF (uses cache if already downloaded this session)
                 await fetchPdfFromServer();
                 await loadPdfDocument();
                 await extractPdfPage();
@@ -781,14 +740,12 @@
                 state.isProcessing = false;
                 updateUI();
                 setTimeout(() => {
-                    if (!state.isProcessing) {
-                        progressContainer.classList.remove('active');
-                    }
+                    if (!state.isProcessing) progressContainer.classList.remove('active');
                 }, 1000);
             }
         }
 
-        // ─── Step 1: Get page number from Cloudflare Worker ──────────────────────
+        // ── Step 1: Get page number from Cloudflare Worker ────────────────────────
         async function fetchPageNumberFromBackend() {
             showProgress('Contacting server...', 20);
 
@@ -802,11 +759,10 @@
                     headers: { 'Accept': 'application/json' }
                 });
 
-                // ✅ Always parse JSON first — worker always sends a JSON body
+                // Always parse JSON first — Worker always sends a JSON body
                 const result = await response.json();
 
-                // ✅ If not OK (404, 400, etc.) return the actual error from Worker
-                //    This prevents the misleading "Failed to connect to server" message
+                // Return real Worker error instead of fake "Failed to connect" message
                 if (!response.ok) {
                     const errMsg = result.error || `Server error: ${response.status}`;
                     showProgress('✗ ' + errMsg, 40);
@@ -821,67 +777,56 @@
                     return result;
                 }
 
-                // Unexpected response shape
                 state.matchedPage = null;
                 showProgress('✗ Consumer not found', 40);
                 pageCounter.textContent = 'Not found';
                 return null;
 
             } catch (error) {
-                // Only reaches here on network failure (no internet, DNS error, etc.)
                 console.error('Network error contacting backend:', error);
                 showProgress('✗ Cannot reach server', 40);
                 throw new Error('Cannot reach server. Please check your internet connection.');
             }
         }
 
-        // ─── Step 2: Download PDF (with cache + CDN fallback) ────────────────────
+        // ── Step 2: Download PDF (cache + CDN fallback) ───────────────────────────
         async function fetchPdfFromServer() {
 
-            // ✅ Already downloaded this session? Use memory cache — INSTANT!
+            // ✅ Cache hit — give this search a FRESH COPY of the master
+            //    new Uint8Array(cached) copies the bytes without touching the original
+            //    so pdf-lib processing this copy can NEVER corrupt the cached master
             if (pdfCache[state.selectedMonth]) {
                 showProgress(`✓ Using cached ${state.selectedMonth} data`, 70);
-                state.pdfFile = pdfCache[state.selectedMonth];
+                state.pdfFile = new Uint8Array(pdfCache[state.selectedMonth]);
                 return;
             }
 
             showProgress(`Loading ${state.selectedMonth} data...`, 50);
 
-            // Primary URL: jsDelivr CDN — faster globally, has India servers
+            // Primary:  jsDelivr CDN — faster, has India servers
             const cdnUrl      = `https://cdn.jsdelivr.net/gh/Shiv0087/bill-extractor-Shapar@main/pdfs/${state.selectedMonth}.pdf`;
-            // Fallback URL: GitHub Pages — original, always works if CDN fails
+            // Fallback: GitHub Pages — original, always reliable
             const fallbackUrl = `https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf`;
 
             let arrayBuffer = null;
 
-            // Try CDN first
             try {
-                showProgress(`Downloading via fast server...`, 55);
-                const response = await fetch(cdnUrl, {
-                    method: 'GET',
-                    mode: 'cors',
-                    cache: 'force-cache'   // use browser cache if available
-                });
-                if (!response.ok) throw new Error('CDN returned ' + response.status);
-                arrayBuffer = await response.arrayBuffer();
+                showProgress('Downloading via fast server...', 55);
+                const res = await fetch(cdnUrl, { method: 'GET', mode: 'cors', cache: 'force-cache' });
+                if (!res.ok) throw new Error('CDN returned ' + res.status);
+                arrayBuffer = await res.arrayBuffer();
                 showProgress(`✓ PDF loaded via CDN (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
 
-            } catch (cdnError) {
-                // CDN failed → silently try GitHub Pages backup
-                console.warn('CDN failed, trying backup:', cdnError.message);
-                showProgress(`Trying backup server...`, 60);
+            } catch (cdnErr) {
+                console.warn('CDN failed, trying backup:', cdnErr.message);
+                showProgress('Trying backup server...', 60);
                 try {
-                    const response = await fetch(fallbackUrl, {
-                        method: 'GET',
-                        mode: 'cors',
-                        cache: 'force-cache'
-                    });
-                    if (!response.ok) throw new Error('Backup also failed: ' + response.status);
-                    arrayBuffer = await response.arrayBuffer();
+                    const res = await fetch(fallbackUrl, { method: 'GET', mode: 'cors', cache: 'force-cache' });
+                    if (!res.ok) throw new Error('Backup failed: ' + res.status);
+                    arrayBuffer = await res.arrayBuffer();
                     showProgress(`✓ PDF loaded via backup (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
-
-                } catch (fallbackError) {
-                    console.error('Both CDN and backup failed:', fallbackError);
+                } catch (fallbackErr) {
+                    console.error('Both sources failed:', fallbackErr);
                     throw new Error(`Could not load ${state.selectedMonth} PDF from any source`);
                 }
             }
@@ -890,13 +835,13 @@
                 throw new Error('Downloaded PDF file is empty');
             }
 
-            state.pdfFile = new Uint8Array(arrayBuffer);
-
-            // ✅ Save in memory — next search for same month will be instant
-            pdfCache[state.selectedMonth] = state.pdfFile;
+            // ✅ Save MASTER copy in cache (never handed to any processor)
+            pdfCache[state.selectedMonth] = new Uint8Array(arrayBuffer);
+            // ✅ Give this search its own WORKING copy
+            state.pdfFile                 = new Uint8Array(arrayBuffer);
         }
 
-        // ─── Step 3: Parse PDF with PDF.js ───────────────────────────────────────
+        // ── Step 3: Parse with PDF.js ─────────────────────────────────────────────
         async function loadPdfDocument() {
             showProgress('Processing PDF...', 75);
 
@@ -912,9 +857,8 @@
                     verbosity: 0
                 });
 
-                state.pdfDoc    = await loadingTask.promise;
+                state.pdfDoc     = await loadingTask.promise;
                 state.totalPages = state.pdfDoc.numPages;
-
                 showProgress(`Ready. Total pages: ${state.totalPages}`, 80);
 
             } catch (error) {
@@ -923,23 +867,19 @@
             }
         }
 
-        // ─── Step 4: Extract the matched page ────────────────────────────────────
+        // ── Step 4: Extract matched page ──────────────────────────────────────────
         async function extractPdfPage() {
             if (state.matchedPage === null || !state.pdfDoc) return;
 
             showProgress('Extracting bill page...', 85);
 
             try {
-                if (state.extractedPdfUrl) {
-                    URL.revokeObjectURL(state.extractedPdfUrl);
-                }
-
+                if (state.extractedPdfUrl) URL.revokeObjectURL(state.extractedPdfUrl);
                 state.extractedFileName = `${state.consumerNumber}.pdf`;
 
                 try {
-                    // Primary method: pdf-lib (preserves original PDF quality)
+                    // Primary: pdf-lib — preserves original PDF quality
                     const { PDFDocument } = PDFLib;
-
                     const originalPdf = await PDFDocument.load(state.pdfFile, {
                         ignoreEncryption: true,
                         updateMetadata: false
@@ -956,25 +896,24 @@
                     newPdf.setCreationDate(new Date());
                     newPdf.setModificationDate(new Date());
 
-                    const pdfBytes = await newPdf.save();
+                    const pdfBytes        = await newPdf.save();
                     state.extractedPdf    = new Blob([pdfBytes], { type: 'application/pdf' });
                     state.extractedPdfUrl = URL.createObjectURL(state.extractedPdf);
 
                 } catch (pdfLibError) {
-                    // Fallback method: render to canvas → jsPDF image
-                    console.log('Using canvas fallback extraction...', pdfLibError);
+                    // Fallback: render to canvas → jsPDF image
+                    console.log('Using canvas fallback...', pdfLibError);
 
                     const page     = await state.pdfDoc.getPage(state.matchedPage + 1);
                     const viewport = page.getViewport({ scale: 2.0 });
-
-                    const canvas  = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.width  = viewport.width;
-                    canvas.height = viewport.height;
+                    const canvas   = document.createElement('canvas');
+                    const context  = canvas.getContext('2d');
+                    canvas.width   = viewport.width;
+                    canvas.height  = viewport.height;
 
                     await page.render({ canvasContext: context, viewport }).promise;
 
-                    const imgData = canvas.toDataURL('image/png', 1.0);
+                    const imgData   = canvas.toDataURL('image/png', 1.0);
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF({
                         orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
@@ -1014,7 +953,7 @@
             }
         }
 
-        // ─── Fallback: Location Guide PDF ────────────────────────────────────────
+        // ── Fallback: Location Guide PDF ──────────────────────────────────────────
         async function createLocationGuide() {
             const { PDFDocument, StandardFonts, rgb } = PDFLib;
             const newPdf = await PDFDocument.create();
@@ -1037,14 +976,13 @@
             page.drawText(`${state.matchedPage + 1} of ${displayTotalPages}`, { x: 200, y: 640, size: 24, font: helveticaBold, color: rgb(0.23, 0.5, 0.96) });
 
             page.drawText('Instructions:', { x: 50, y: 550, size: 16, font: helveticaBold });
-            const instructions = [
+            [
                 `1. Open ${state.selectedMonth}.pdf file`,
                 `2. Navigate to page ${state.matchedPage + 1}`,
                 `3. Print or save that specific page`,
                 `4. Bill is now extracted for consumer ${state.consumerNumber}`
-            ];
-            instructions.forEach((instruction, index) => {
-                page.drawText(instruction, { x: 70, y: 520 - (index * 25), size: 12, font: helveticaFont });
+            ].forEach((line, i) => {
+                page.drawText(line, { x: 70, y: 520 - (i * 25), size: 12, font: helveticaFont });
             });
 
             page.drawText('Original PDF:', { x: 50, y: 400, size: 12, font: helveticaBold });
@@ -1059,10 +997,9 @@
             state.extractedFileName = `${state.consumerNumber}_GUIDE.pdf`;
         }
 
-        // ─── Display ──────────────────────────────────────────────────────────────
+        // ── Display ───────────────────────────────────────────────────────────────
         function displayExtractedPdf() {
             if (!state.extractedPdfUrl) return;
-
             pdfViewer.src = state.extractedPdfUrl + '#toolbar=1&navpanes=0&scrollbar=1';
             resultPlaceholder.style.display = 'none';
             resultViewer.classList.add('active');
@@ -1084,8 +1021,8 @@
                 a.click();
                 setTimeout(() => document.body.removeChild(a), 100);
                 showMessage('success', `Downloading: ${state.extractedFileName}`);
-            } catch (error) {
-                console.error('Download error:', error);
+            } catch (err) {
+                console.error('Download error:', err);
                 showMessage('error', 'Download failed.');
             }
         }
@@ -1096,22 +1033,22 @@
                 return;
             }
             try {
-                const printWindow = window.open(state.extractedPdfUrl, '_blank');
-                if (printWindow) {
-                    printWindow.onload = () => setTimeout(() => printWindow.print(), 500);
+                const w = window.open(state.extractedPdfUrl, '_blank');
+                if (w) {
+                    w.onload = () => setTimeout(() => w.print(), 500);
                 } else {
                     showMessage('error', 'Please allow pop-ups to print.');
                 }
-            } catch (error) {
-                console.error('Print error:', error);
+            } catch (err) {
+                console.error('Print error:', err);
                 showMessage('error', 'Print failed.');
             }
         }
 
-        // ─── UI Helpers ───────────────────────────────────────────────────────────
+        // ── Helpers ───────────────────────────────────────────────────────────────
         function showProgress(text, percent) {
-            progressText.textContent    = text;
-            progressFill.style.width    = `${percent}%`;
+            progressText.textContent = text;
+            progressFill.style.width = `${percent}%`;
             if (!progressContainer.classList.contains('active')) {
                 progressContainer.classList.add('active');
             }
@@ -1122,27 +1059,22 @@
             messageArea.className   = `message ${type}`;
             if (type === 'success') {
                 setTimeout(() => {
-                    if (messageArea.className.includes('success')) {
-                        messageArea.className = 'message';
-                    }
+                    if (messageArea.className.includes('success')) messageArea.className = 'message';
                 }, 5000);
             }
         }
 
         function resetResults() {
             if (state.extractedPdfUrl) URL.revokeObjectURL(state.extractedPdfUrl);
-
             pdfViewer.src = '';
             resultViewer.classList.remove('active');
             resultPlaceholder.style.display = 'flex';
-            downloadButton.disabled = true;
-            printButton.disabled    = true;
-
-            state.extractedPdf      = null;
-            state.extractedPdfUrl   = null;
-            state.extractedFileName = '';
-            state.matchedPage       = null;
-
+            downloadButton.disabled  = true;
+            printButton.disabled     = true;
+            state.extractedPdf       = null;
+            state.extractedPdfUrl    = null;
+            state.extractedFileName  = '';
+            state.matchedPage        = null;
             progressFill.style.width = '0%';
             pageCounter.textContent  = 'Page —';
         }
