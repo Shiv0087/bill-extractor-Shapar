@@ -800,11 +800,13 @@
                     }
                 });
                 
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                
-                const result = await response.json();
+                // ✅ REPLACE WITH THIS
+const result = await response.json();
+
+if (!response.ok) {
+    // Show the actual error from Worker, not a fake connection error
+    return { error: result.error || `Server error: ${response.status}` };
+}
                 
                 if (result && result.error) {
                     showProgress('✗ ' + result.error, 40);
