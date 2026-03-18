@@ -792,54 +792,50 @@
         // ── Step 2: Download PDF (cache + CDN fallback) ───────────────────────────
         async function fetchPdfFromServer() {
 
-            // ✅ Cache hit — give this search a FRESH COPY of the master
-            //    new Uint8Array(cached) copies the bytes without touching the original
-            //    so pdf-lib processing this copy can NEVER corrupt the cached master
-            if (pdfCache[state.selectedMonth]) {
-                showProgress(`✓ Using cached ${state.selectedMonth} data`, 70);
-                state.pdfFile = new Uint8Array(pdfCache[state.selectedMonth]);
-                return;
-            }
+    // Cache hit — slice() gives a 100% independent ArrayBuffer
+    // pdf-lib can detach/consume this freely, cache master is never affected
+    if (pdfCache[state.selectedMonth]) {
+        showProgress(`✓ Using cached ${state.selectedMonth} data`, 70);
+        state.pdfFile = new Uint8Array(pdfCache[state.selectedMonth].slice(0));
+        return;
+    }
 
-            showProgress(`Loading ${state.selectedMonth} data...`, 50);
+    showProgress(`Loading ${state.selectedMonth} data...`, 50);
 
-            // Primary:  jsDelivr CDN — faster, has India servers
-            const cdnUrl      = `https://cdn.jsdelivr.net/gh/Shiv0087/bill-extractor-Shapar@main/pdfs/${state.selectedMonth}.pdf`;
-            // Fallback: GitHub Pages — original, always reliable
-            const fallbackUrl = `https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf`;
+    const cdnUrl      = `https://cdn.jsdelivr.net/gh/Shiv0087/bill-extractor-Shapar@main/pdfs/${state.selectedMonth}.pdf`;
+    const fallbackUrl = `https://shiv0087.github.io/bill-extractor-Shapar/pdfs/${state.selectedMonth}.pdf`;
 
-            let arrayBuffer = null;
+    let arrayBuffer = null;
 
-            try {
-                showProgress('Downloading via fast server...', 55);
-                const res = await fetch(cdnUrl, { method: 'GET', mode: 'cors', cache: 'force-cache' });
-                if (!res.ok) throw new Error('CDN returned ' + res.status);
-                arrayBuffer = await res.arrayBuffer();
-                showProgress(`✓ PDF loaded via CDN (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
+    try {
+        showProgress('Downloading via fast server...', 55);
+        const res = await fetch(cdnUrl, { method: 'GET', mode: 'cors', cache: 'force-cache' });
+        if (!res.ok) throw new Error('CDN returned ' + res.status);
+        arrayBuffer = await res.arrayBuffer();
+        showProgress(`✓ PDF loaded via CDN (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
 
-            } catch (cdnErr) {
-                console.warn('CDN failed, trying backup:', cdnErr.message);
-                showProgress('Trying backup server...', 60);
-                try {
-                    const res = await fetch(fallbackUrl, { method: 'GET', mode: 'cors', cache: 'force-cache' });
-                    if (!res.ok) throw new Error('Backup failed: ' + res.status);
-                    arrayBuffer = await res.arrayBuffer();
-                    showProgress(`✓ PDF loaded via backup (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
-                } catch (fallbackErr) {
-                    console.error('Both sources failed:', fallbackErr);
-                    throw new Error(`Could not load ${state.selectedMonth} PDF from any source`);
-                }
-            }
-
-            if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-                throw new Error('Downloaded PDF file is empty');
-            }
-
-            // ✅ Save MASTER copy in cache (never handed to any processor)
-            pdfCache[state.selectedMonth] = new Uint8Array(arrayBuffer);
-            // ✅ Give this search its own WORKING copy
-            state.pdfFile                 = new Uint8Array(arrayBuffer);
+    } catch (cdnErr) {
+        console.warn('CDN failed, trying backup:', cdnErr.message);
+        showProgress('Trying backup server...', 60);
+        try {
+            const res = await fetch(fallbackUrl, { method: 'GET', mode: 'cors', cache: 'force-cache' });
+            if (!res.ok) throw new Error('Backup failed: ' + res.status);
+            arrayBuffer = await res.arrayBuffer();
+            showProgress(`✓ PDF loaded via backup (${Math.round(arrayBuffer.byteLength / 1024)} KB)`, 70);
+        } catch (fallbackErr) {
+            console.error('Both sources failed:', fallbackErr);
+            throw new Error(`Could not load ${state.selectedMonth} PDF from any source`);
         }
+    }
+
+    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Downloaded PDF file is empty');
+    }
+
+    // Store raw ArrayBuffer as master — slice(0) for every use
+    pdfCache[state.selectedMonth] = arrayBuffer.slice(0);        // master copy
+    state.pdfFile = new Uint8Array(arrayBuffer.slice(0));        // working copy
+}
 
         // ── Step 3: Parse with PDF.js ─────────────────────────────────────────────
         async function loadPdfDocument() {
